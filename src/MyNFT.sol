@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.11;
 
-import "@solmate/tokens/ERC721.sol";
+import {ERC721} from "@solmate/tokens/ERC721.sol";
+import {MerkleProof} from "@openzeppelin/utils/cryptography/MerkleProof.sol";
 import "./utils/Strings.sol";
 
 error WrongEtherAmount();
 error TokenDoesNotExist();
+error InvalidProof();
 
 /// @title Greeter
 /// @author Andreas Bigger <andreas@nascent.xyz>
@@ -34,6 +36,18 @@ contract MyNFT is ERC721 {
         if (msg.value != price) {
             revert WrongEtherAmount();
         }
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        if (verifyMerkle(merkleProof, leaf)) {
+            revert InvalidProof();
+        }
+    }
+
+    function verifyMerkle(bytes32[] calldata proof, bytes32 leaf)
+        internal
+        view
+        returns (bool)
+    {
+        return MerkleProof.verify(proof, merkleRoot, leaf);
     }
 
     function tokenURI(uint256 tokenId)
